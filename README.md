@@ -34,12 +34,12 @@ Currently, any secrets attached to the ubuntu workstation are not available afte
   `export AWS_SESSION_TOKEN="PASTE Token"`. Then press enter<br>
   `export AWS_DEFAULT_REGION="us-west-2"`. Then press enter<br>
 
-* Then launch the gui and proceed as usual. IMPORTANT: The temporary credentials are only valid for around **1 hour**.
+* Then launch the gui and proceed as usual. IMPORTANT: The temporary credentials are only valid for around **1 hour**. This means that once they expire, you will have to regenerate them with the steps above. This will require you to shut down the Ubuntu workstation. IMPORTANT: You must click save to get your alignments saved to docdb and your credentials have not expired. 
 
 ### Using the gui
 After launching the gui, navigate to the probe you want to load and click on that folder. Once loaded, something like below should show:
 ![image](https://github.com/user-attachments/assets/dca1e47b-62d0-4b88-8509-757968f0be64)
 
-Usage instructions can be found on the [`iblapps` wiki](https://github.com/int-brain-lab/iblapps/wiki)
+Usage instructions can be found on the [`iblapps` wiki](https://github.com/int-brain-lab/iblapps/wiki). For debugging, check the terminal for console outputs and reach out to Josh or Arjun if needed.
 
   
