@@ -42,6 +42,6 @@ Open up a terminal by hitting the square shaped button in the lower left. CLick 
 
 ![image](https://github.com/user-attachments/assets/fa014933-94fd-4bdf-874f-590a0db362ea)
 
-Usage instructions can be found on the [`iblapps` wiki](https://github.com/int-brain-lab/iblapps/wiki). For debugging, check the terminal for console outputs (where the gui was launched) and reach out to Josh or Arjun if needed.
+Usage instructions can be found on the [`iblapps` wiki](https://github.com/int-brain-lab/iblapps/wiki). For debugging, check the terminal for console outputs (where the gui was launched) and reach out to Josh or Arjun if needed. IMPORTANT: If you do not have docdb credentials, the output will still be saved to `/results` 
 
   
