@@ -11,11 +11,23 @@
 		"git_ask_pass": true
 	},
 	"installers": {
+		"apt": {
+			"packages": [
+				{
+					"name": "libxcb-xinerama0",
+					"version": "1.14-3ubuntu3"
+				}
+			]
+		},
 		"pip": {
 			"packages": [
 				{
 					"name": "git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui",
 					"version": "3c787f7c23c098ec1591f535de3757c5cb1994ef"
+				},
+				{
+					"name": "simpleitk",
+					"version": "2.5.2"
 				}
 			],
 			"options": {},

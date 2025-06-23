@@ -1,0 +1,9 @@
+{
+	"version": 1,
+	"attached_datasets": [
+		{
+			"id": "d5f9aaf7-a8c2-4f74-95de-13e86ae95ae9",
+			"mount": "spim_template_to_ccf"
+		}
+	]
+}
