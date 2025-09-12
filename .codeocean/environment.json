@@ -18,7 +18,8 @@
 		"pip": {
 			"packages": [
 				{
-					"name": "git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui"
+					"name": "git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui",
+					"version": "a4557113344225a569c56bc4c86285f09acb0109"
 				},
 				{
 					"name": "simpleitk",

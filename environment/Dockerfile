@@ -1,4 +1,4 @@
-# hash:sha256:236858d5c5e2492c292704120c82ec8c1e1550d29606586db186efb2fa5c6b5d
+# hash:sha256:da766ec41f1c62fcf98c534d742ba624da8dfb3bbac6b6bb10e720d667ff0bc8
 ARG REGISTRY_HOST
 FROM $REGISTRY_HOST/codeocean/ubuntu-desktop-igv-fiji-mambaforge:23.1.0-4-python3.10.12-fiji20231107-1617-firefox120.0-igv2.16.1-guacamole1.5.2-ubuntu22.04
 
@@ -15,4 +15,4 @@ RUN --mount=type=secret,id=git-access-token \
     GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
     pip install -U --no-cache-dir \
     simpleitk==2.5.2 \
-    -e git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui
+    -e git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@a4557113344225a569c56bc4c86285f09acb0109#egg=ibl-ephys-alignment-gui
