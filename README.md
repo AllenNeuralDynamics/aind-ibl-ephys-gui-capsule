@@ -1,18 +1,10 @@
-This is the [capsule](https://codeocean.allenneuraldynamics.org/capsule/6044160/tree) that launches the IBL Gui in the image space. The repo that this capsule uses is found here: [aind-ibl-gui](https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui). Click on the Orange Ububtu icon in cloud workstation to launch the gui. If you want to write your results to the document database, follow the instructions below. Duplicating the capsule is probably the most straightforward workflow for doing the manual alignment. 
+This is the [capsule](https://codeocean.allenneuraldynamics.org/capsule/6044160/tree) that launches the IBL Gui in the image space. The repo that this capsule uses is found here: [aind-ibl-gui](https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui). Duplicate this capsule to start.
 
 ### Attaching Data
 Before launching the gui, make sure these 2 assets are attached. The output from this capsule: https://codeocean.allenneuraldynamics.org/capsule/0325751/tree, and the stitched SmartSPIM asset for the subject.
 
-### Environment Dependency
-Also before launching, check that the gui dependency is on the latest. To do this, click on environment, and make sure it shows as below:
-![image](https://github.com/user-attachments/assets/9994e025-c9f4-4a37-86ff-e678b5248ef0)
-
-If it doesn't say latest and shows some commit unique identifier, click on it and remove the identifier, and then click on the checkbox. It should say latest. This will ensure you are on the latest version.
-
-NOTE: If you wish to perfrom alignments in the ccf space, set the dependency to this: `git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@ibl-ccf-space-app#egg=ibl-ephys-alignment-gui`. 
-
 ### Setting docdb credentials
-Before launching the workstation follow the steps below:
+If you want to save to the metadata database, before launching the workstation follow the steps below:
 * Click on the environment tab in the left
 * Scroll down to the Secrets section
 * Under the drop down choose the one in the screenshot below:
