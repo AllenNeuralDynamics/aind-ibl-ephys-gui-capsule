@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ex
 
-curl 169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI > /results/env.txt
+
