@@ -2,6 +2,14 @@
 	"version": 1,
 	"attached_datasets": [
 		{
+			"id": "0e48b562-3e1f-40b7-acc5-400ebe356d95",
+			"mount": "ibl-gui-data_781370_integration-test_2026-02-24_09-33-00"
+		},
+		{
+			"id": "49c166a5-76d7-48ca-91d6-83bc8321fcb1",
+			"mount": "SmartSPIM_781370_2025-07-31_21-01-37_stitched_2025-09-06_14-34-07"
+		},
+		{
 			"id": "d5f9aaf7-a8c2-4f74-95de-13e86ae95ae9",
 			"mount": "spim_template_to_ccf"
 		}
