@@ -2,8 +2,60 @@
 	"version": 1,
 	"attached_datasets": [
 		{
+			"id": "01c97259-46ba-4015-8d3f-2b9a1815c0db",
+			"mount": "ecephys_776259_2025-04-09_17-25-12_sorted_2025-07-02_13-42-36_probe_histology_alignment_2025-11-04_00-30-00"
+		},
+		{
+			"id": "0e48b562-3e1f-40b7-acc5-400ebe356d95",
+			"mount": "ibl-gui-data_781370_integration-test_2026-02-24_09-33-00"
+		},
+		{
+			"id": "191a317d-a0b8-4a51-a8bb-46610485c578",
+			"mount": "ibl_stuff_776259_2025-04-09_17-25-12_combined"
+		},
+		{
+			"id": "315ec700-b3fd-4d45-bea6-6e44a54246ed",
+			"mount": "SmartSPIM_751004_2025-03-25_18-18-16_stitched_2025-10-09_11-26-32"
+		},
+		{
+			"id": "3357e2a3-87a3-41c3-b4cb-e7005b41665f",
+			"mount": "SmartSPIM_754897_2025-05-20_16-34-41_ibl-converted_2025-12-07_22-28-00"
+		},
+		{
+			"id": "51f3beb4-457b-4a5f-916c-d0efdf6e428f",
+			"mount": "SmartSPIM_781370_2025-07-31_21-01-37_stitched_2025-09-06_14-34-07"
+		},
+		{
+			"id": "5d9f262a-e2db-487f-80b7-06b434a367f1",
+			"mount": "SmartSPIM_751004_2025-03-25_18-18-16_ibl-converted_2025-12-07_22-33-00"
+		},
+		{
+			"id": "60fe3cc1-2c31-4435-a375-620be2f9579b",
+			"mount": "iblatlas_allenatlas"
+		},
+		{
+			"id": "8c3bb194-45be-4053-9d39-9ac2729189fc",
+			"mount": "ibl_stuff_750108_ALL_created_2025-11-07_11-02-00"
+		},
+		{
+			"id": "a0740a1c-1c54-47ee-b9d7-b215511ebb3d",
+			"mount": "allen_mouse_ccf_annotations_lateralized_compact"
+		},
+		{
 			"id": "d5f9aaf7-a8c2-4f74-95de-13e86ae95ae9",
 			"mount": "spim_template_to_ccf"
+		},
+		{
+			"id": "df465214-d58d-4af2-b796-948b85ab3fca",
+			"mount": "SmartSPIM_754897_2025-05-20_16-34-41_stitched_2025-05-24_11-21-14"
+		},
+		{
+			"id": "fa068eb5-72da-4667-b0b4-266abb071451",
+			"mount": "SmartSPIM_776259_2025-06-26_20-44-52_stitched_2025-07-22_11-35-09"
+		},
+		{
+			"id": "fdd5a284-7f17-4892-9f80-63d46d774a34",
+			"mount": "SmartSPIM_750108_2025-01-13_11-51-10_stitched_2025-01-17_07-56-46"
 		}
 	]
 }

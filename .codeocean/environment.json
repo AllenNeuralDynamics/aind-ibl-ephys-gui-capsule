@@ -1,6 +1,7 @@
 {
 	"version": 1,
 	"base_image": "codeocean/ubuntu-desktop-igv-fiji-mambaforge:23.1.0-4-python3.10.12-fiji20231107-1617-firefox120.0-igv2.16.1-guacamole1.5.2-ubuntu22.04",
+	"post_install": true,
 	"options": {
 		"registry_host_arg": true,
 		"git_ask_pass": true,
@@ -10,23 +11,61 @@
 		"apt": {
 			"packages": [
 				{
+					"name": "build-essential",
+					"version": "12.9ubuntu3"
+				},
+				{
+					"name": "ca-certificates",
+					"version": "20240203~22.04.1"
+				},
+				{
+					"name": "curl",
+					"version": "7.81.0-1ubuntu1.21"
+				},
+				{
+					"name": "git",
+					"version": "1:2.34.1-1ubuntu1.15"
+				},
+				{
+					"name": "libxcb-cursor0",
+					"version": "0.1.1-4ubuntu1"
+				},
+				{
 					"name": "libxcb-xinerama0",
 					"version": "1.14-3ubuntu3"
+				},
+				{
+					"name": "libxkbcommon-x11-0",
+					"version": "1.4.0-1"
+				},
+				{
+					"name": "xz-utils",
+					"version": "5.2.5-2ubuntu1"
 				}
 			]
 		},
-		"pip": {
+		"vscode": {
 			"packages": [
 				{
-					"name": "git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui"
+					"name": "continue.continue"
 				},
 				{
-					"name": "simpleitk",
-					"version": "2.5.2"
+					"name": "ms-python.python"
+				},
+				{
+					"name": "ms-toolsai.jupyter"
+				},
+				{
+					"name": "reageyao.biosyntax"
+				},
+				{
+					"name": "reditorsupport.r"
+				},
+				{
+					"name": "saoudrizwan.claude-dev"
 				}
 			],
-			"options": {},
-			"pre_install_options": {}
+			"version": "4.100.3"
 		}
 	}
 }

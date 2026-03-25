@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+rm -rf /var/lib/apt/lists/*
+
+# --- Install VS Code (Debian/Ubuntu) ---
+# Download the official .deb and install with apt so dependencies are resolved.
+# (Avoid dpkg -i here; apt handles deps automatically.)
+TMP_DEB=/tmp/vscode.deb
+curl -fL -o "${TMP_DEB}" https://go.microsoft.com/fwlink/?LinkID=760868
+apt-get update
+apt-get install -y --no-install-recommends "${TMP_DEB}"
+rm -f "${TMP_DEB}"
+rm -rf /var/lib/apt/lists/*
+# Tip: if you prefer the Microsoft APT repo for automatic updates,
+# follow the upstream guide to add their repo/GPG key instead. :contentReference[oaicite:2]{index=2}
+
+# --- Install VS Code Python extensions ---
+# code --install-extension ms-python.python
+# code --install-extension ms-python.vscode-pylance
+
+# --- Install uv (unmanaged so it doesn't touch shell profiles during image build) ---
+# This puts 'uv' at /usr/local/bin and avoids profile edits in a non-interactive build.
+curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
+uv --version  # sanity check
+# (Unmanaged installs skip self-updates; you can still rerun the installer later.) :contentReference[oaicite:3]{index=3}
+
+# --- Clone your GUI and install its environment with uv ---
+# If you want a fixed path that’s not root’s home, /opt is conventional.
+#git clone --filter=blob:none --single-branch --branch fix/histology-offsets \
+#  https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui \
+#  /opt/ibl-ephys-alignment-gui
+git clone --filter=blob:none --branch fix/memory-leaks \
+  https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui \
+  /opt/ibl-ephys-alignment-gui
+
+pushd /opt/ibl-ephys-alignment-gui
+# Create a project-local venv and resolve/install from pyproject/uv.lock (if present)
+uv sync
+uv pip install --system .
+# Optional: if you want a pinned Python for the project, let uv fetch it:
+# uv python install 3.12
+# uv sync --python 3.12
+popd
