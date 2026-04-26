@@ -18,9 +18,16 @@ rm -rf /var/lib/apt/lists/*
 # Tip: if you prefer the Microsoft APT repo for automatic updates,
 # follow the upstream guide to add their repo/GPG key instead. :contentReference[oaicite:2]{index=2}
 
-# --- Install VS Code Python extensions ---
-# code --install-extension ms-python.python
-# code --install-extension ms-python.vscode-pylance
+# --- Install VS Code Python extensions into a baked-in extensions dir ---
+# Extensions live under /opt so they ride with the docker image and stay in
+# sync with this postInstall; the runtime launcher points at them via
+# --extensions-dir.
+VSCODE_EXTDIR=/opt/vscode-extensions
+mkdir -p "${VSCODE_EXTDIR}"
+VSCODE_BUILD_FLAGS=(--no-sandbox --user-data-dir=/tmp/vscode-build --extensions-dir="${VSCODE_EXTDIR}")
+code "${VSCODE_BUILD_FLAGS[@]}" --install-extension ms-python.python
+code "${VSCODE_BUILD_FLAGS[@]}" --install-extension ms-python.debugpy
+rm -rf /tmp/vscode-build
 
 # --- Install uv (unmanaged so it doesn't touch shell profiles during image build) ---
 # This puts 'uv' at /usr/local/bin and avoids profile edits in a non-interactive build.
@@ -45,3 +52,75 @@ uv pip install --system .
 # uv python install 3.12
 # uv sync --python 3.12
 popd
+
+# --- Pre-configure VS Code workspace so debugging is one-click ---
+mkdir -p /opt/ibl-ephys-alignment-gui/.vscode
+
+cat > /opt/ibl-ephys-alignment-gui/.vscode/launch.json <<'JSON'
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug: IBL Ephys Alignment GUI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/launch.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/bin/python"
+        }
+    ]
+}
+JSON
+
+cat > /opt/ibl-ephys-alignment-gui/.vscode/settings.json <<'JSON'
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.terminal.activateEnvironment": true
+}
+JSON
+
+# --- Wrapper that encapsulates the Code Ocean-specific VS Code launch dance ---
+cat > /usr/local/bin/code-debug <<'SH'
+#!/usr/bin/env bash
+# Launch VS Code in the Code Ocean root-desktop session:
+#   - --no-sandbox is required when running as root
+#   - --user-data-dir=/scratch keeps VS Code state on the persistent scratch
+#     mount (survives across capsule runs, unlike /root)
+#   - extensions live in the baked-in /opt/vscode-extensions
+#   - gnome-keyring-daemon is unlocked with an empty password so VS Code's
+#     secret storage doesn't prompt
+#   - core dumps are suppressed
+set -e
+
+ulimit -c 0
+
+mkdir -p /scratch
+
+if command -v gnome-keyring-daemon >/dev/null 2>&1; then
+    eval "$(printf '\n' | gnome-keyring-daemon --unlock --components=secrets,pkcs11,ssh 2>/dev/null)" || true
+    export SSH_AUTH_SOCK
+fi
+
+exec code \
+    --no-sandbox \
+    --user-data-dir=/scratch \
+    --extensions-dir=/opt/vscode-extensions \
+    "${@:-/opt/ibl-ephys-alignment-gui}"
+SH
+chmod +x /usr/local/bin/code-debug
+
+# --- Desktop launcher for the Guacamole graphical session ---
+mkdir -p /root/Desktop
+cat > /root/Desktop/Debug-IBL-GUI.desktop <<'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Debug IBL GUI
+Comment=Open ibl-ephys-alignment-gui in VS Code with the debugger pre-configured
+Exec=/usr/local/bin/code-debug /opt/ibl-ephys-alignment-gui
+Icon=code
+Terminal=false
+Categories=Development;
+DESKTOP
+chmod +x /root/Desktop/Debug-IBL-GUI.desktop
