@@ -124,3 +124,34 @@ Terminal=false
 Categories=Development;
 DESKTOP
 chmod +x /root/Desktop/Debug-IBL-GUI.desktop
+
+# --- Autostart: mark desktop launchers as trusted so they don't prompt ---
+# gio set requires a running gvfs daemon (over dbus), which only exists at
+# session time — not during the docker build. So we drop a helper script and
+# an XDG autostart entry that runs it on session start, marking every
+# ~/Desktop/*.desktop as trusted under both the GNOME (metadata::trusted) and
+# XFCE (metadata::xfce-exe-checksum) conventions.
+cat > /usr/local/bin/trust-desktop-launchers <<'SH'
+#!/usr/bin/env bash
+shopt -s nullglob
+for f in "$HOME"/Desktop/*.desktop; do
+    chmod +x "$f"
+    gio set "$f" metadata::trusted true 2>/dev/null || true
+    exec_line=$(sed -n 's/^Exec=//p' "$f" | head -n1)
+    if [ -n "$exec_line" ]; then
+        checksum=$(printf %s "$exec_line" | sha256sum | awk '{print $1}')
+        gio set "$f" metadata::xfce-exe-checksum "$checksum" 2>/dev/null || true
+    fi
+done
+SH
+chmod +x /usr/local/bin/trust-desktop-launchers
+
+mkdir -p /root/.config/autostart
+cat > /root/.config/autostart/trust-desktop-launchers.desktop <<'AUTOSTART'
+[Desktop Entry]
+Type=Application
+Name=Trust Desktop Launchers
+Exec=/usr/local/bin/trust-desktop-launchers
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+AUTOSTART
