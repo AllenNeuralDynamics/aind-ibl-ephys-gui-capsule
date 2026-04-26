@@ -33,7 +33,7 @@ uv --version  # sanity check
 #git clone --filter=blob:none --single-branch --branch fix/histology-offsets \
 #  https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui \
 #  /opt/ibl-ephys-alignment-gui
-git clone --filter=blob:none --branch fix/memory-leaks \
+git clone --filter=blob:none --branch main \
   https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui \
   /opt/ibl-ephys-alignment-gui
 
