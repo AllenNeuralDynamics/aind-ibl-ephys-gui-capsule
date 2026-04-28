@@ -16,3 +16,6 @@ RUN --mount=type=secret,id=git-access-token \
     pip install -U --no-cache-dir \
     simpleitk==2.5.2 \
     -e git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui
+
+COPY postInstall /
+RUN /postInstall

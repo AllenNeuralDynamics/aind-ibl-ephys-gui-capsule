@@ -13,16 +13,15 @@ If you want to save to the metadata database, before launching the workstation f
 
 * If you do not see this role in the drop down, reach out to David Feng or Dan Birman to be added
 
-### Environment variables
-* Launch the Ubuntu workstation and open the terminal
-* Before launching the gui follow run the commands below:
-* 
-  `export username="YOUR NAME"`. Then press enter<br>
+### Username for docdb
+The first time you launch the workstation, a dialog will prompt for a username. This is what gets recorded with alignments saved to docdb. The value is cached on `/scratch` and reused on subsequent runs of the capsule, so you only enter it once. Leave it blank to skip docdb writes (alignments still save to `/results`).
 
-* Then launch the gui and proceed as usual.
+To change it later, delete `/scratch/.ibl-gui-username` and relaunch, or `export username="..."` in a terminal before invoking `launch-ibl-gui`.
 
 ### Using the gui
-Open up a terminal by hitting the square shaped button in the lower left. CLick on terminal and then type in `launch`. Navigate to the probe you want to load and click on that folder. Once loaded, something like below should show:
+The GUI starts automatically when the Ubuntu workstation finishes booting — a terminal window opens and runs `launch-ibl-gui`. If the GUI exits or crashes, the terminal stays open so you can read the traceback; rerun `launch-ibl-gui` in that same terminal to relaunch without restarting the session.
+
+Navigate to the probe you want to load and click on that folder. Once loaded, something like below should show:
 
 ![image](https://github.com/user-attachments/assets/fa014933-94fd-4bdf-874f-590a0db362ea)
 
