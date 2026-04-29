@@ -19,6 +19,13 @@ REQ
 
 uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
 
+# `uv pip install --system` puts entry-point scripts in the conda env's bin
+# (e.g. /opt/conda/bin/launch). The autostart-spawned gnome-terminal runs
+# `bash -c`, which is non-interactive and skips conda's profile.d scripts,
+# so /opt/conda/bin isn't on PATH there. Symlink into /usr/local/bin so the
+# wrapper finds `launch` regardless of how the shell was invoked.
+ln -sf "$(command -v launch)" /usr/local/bin/launch
+
 # --- Wrapper that persists the docdb `username` across capsule runs ---
 # The IBL GUI uses the `username` env var when saving alignments to docdb.
 # /scratch persists across capsule runs in Code Ocean, so we cache it there
