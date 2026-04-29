@@ -30,6 +30,10 @@
 			"mount": "SmartSPIM_751004_2025-03-25_18-18-16_ibl-converted_2025-12-07_22-33-00"
 		},
 		{
+			"id": "5e968806-711b-43af-b343-cdc9edf88658",
+			"mount": "ecephys_781370_2025-05-30_15-52-48_preprocessed_2026-04-26_12-26-00"
+		},
+		{
 			"id": "60fe3cc1-2c31-4435-a375-620be2f9579b",
 			"mount": "iblatlas_allenatlas"
 		},
