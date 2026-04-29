@@ -10,9 +10,14 @@ set -euxo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get update
-apt-get install -y --no-install-recommends zenity
-rm -rf /var/lib/apt/lists/*
+cur -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+cat > /tmp/requirements.txt <<'REQ'
+git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git
+REQ
+
+uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
 
 # --- Wrapper that persists the docdb `username` across capsule runs ---
 # The IBL GUI uses the `username` env var when saving alignments to docdb.

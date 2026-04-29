@@ -1,4 +1,4 @@
-# hash:sha256:d95fd5d92ac0ea59be1a1f61f8725e855f0ba5c59bc390f833b3d5fdb42aaaac
+# hash:sha256:5e850fb6c7cbad0724a83c430e4db787ec87e55cd24cc338422d3052d3b0c0cd
 ARG REGISTRY_HOST
 FROM $REGISTRY_HOST/codeocean/ubuntu-desktop-igv-fiji-mambaforge:23.1.0-4-python3.10.12-fiji20231107-1617-firefox120.0-igv2.16.1-guacamole1.5.2-ubuntu22.04
 
@@ -9,6 +9,7 @@ COPY git-ask-pass /
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libxcb-xinerama0=1.14-3ubuntu3 \
+        zenity \
     && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=secret,id=git-access-token \

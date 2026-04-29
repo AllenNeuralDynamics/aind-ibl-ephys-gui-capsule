@@ -13,6 +13,9 @@
 				{
 					"name": "libxcb-xinerama0",
 					"version": "1.14-3ubuntu3"
+				},
+				{
+					"name": "zenity"
 				}
 			]
 		},
