@@ -81,7 +81,8 @@ cat > /opt/ibl-ephys-alignment-gui/.vscode/settings.json <<'JSON'
 JSON
 
 # --- Wrapper that encapsulates the Code Ocean-specific VS Code launch dance ---
-cat > /usr/local/bin/code-debug <<'SH'
+# Named to parallel the launcher capsule's `launch-ibl-gui`.
+cat > /usr/local/bin/debug-ibl-gui <<'SH'
 #!/usr/bin/env bash
 # Launch VS Code in the Code Ocean root-desktop session:
 #   - --no-sandbox is required when running as root
@@ -108,22 +109,31 @@ exec code \
     --extensions-dir=/opt/vscode-extensions \
     "${@:-/opt/ibl-ephys-alignment-gui}"
 SH
-chmod +x /usr/local/bin/code-debug
+chmod +x /usr/local/bin/debug-ibl-gui
 
-# --- Desktop launcher for the Guacamole graphical session ---
-mkdir -p /root/Desktop
-cat > /root/Desktop/Debug-IBL-GUI.desktop <<'DESKTOP'
+# --- Desktop entry: autostart, app menu, and double-clickable icon ---
+# Same pattern as the launcher capsule: one shared body written to three
+# locations so VS Code opens at session login (autostart), shows up in the
+# app menu, and is available as a double-clickable icon for re-launch.
+DESKTOP_ENTRY=$(cat <<'DESKTOP'
 [Desktop Entry]
 Version=1.0
 Type=Application
 Name=Debug IBL GUI
 Comment=Open ibl-ephys-alignment-gui in VS Code with the debugger pre-configured
-Exec=/usr/local/bin/code-debug /opt/ibl-ephys-alignment-gui
+Exec=/usr/local/bin/debug-ibl-gui /opt/ibl-ephys-alignment-gui
 Icon=code
 Terminal=false
 Categories=Development;
+X-GNOME-Autostart-enabled=true
 DESKTOP
-chmod +x /root/Desktop/Debug-IBL-GUI.desktop
+)
+
+mkdir -p /root/.config/autostart /usr/share/applications /root/Desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /root/.config/autostart/debug-ibl-gui.desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /usr/share/applications/debug-ibl-gui.desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /root/Desktop/debug-ibl-gui.desktop
+chmod +x /root/Desktop/debug-ibl-gui.desktop
 
 # --- Autostart: mark desktop launchers as trusted so they don't prompt ---
 # gio set requires a running gvfs daemon (over dbus), which only exists at
