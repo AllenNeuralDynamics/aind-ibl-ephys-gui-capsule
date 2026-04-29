@@ -10,7 +10,7 @@ set -euxo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
-cur -LsSf https://astral.sh/uv/install.sh | sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
 cat > /tmp/requirements.txt <<'REQ'
