@@ -15,7 +15,8 @@
 					"version": "1.14-3ubuntu3"
 				},
 				{
-					"name": "zenity"
+					"name": "zenity",
+					"version": "3.42.1-0ubuntu1"
 				}
 			]
 		}
