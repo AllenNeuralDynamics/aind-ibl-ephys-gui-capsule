@@ -2,10 +2,10 @@
 # QoL setup for the IBL Ephys Alignment GUI capsule:
 #   - launch-ibl-gui wrapper that persists the docdb `username` across runs
 #   - XDG autostart that opens the GUI in a terminal at session login
-# These Code Ocean sessions are disposable and single-purpose (just run the
-# GUI), so we skip a desktop icon entirely. If the GUI exits, the terminal
-# stays open (--hold) so the user can read the traceback and rerun the
-# wrapper without restarting the session.
+#   - desktop icon + app menu entry so the user can re-launch after closing
+# If the GUI exits, the terminal drops into an interactive bash so the user
+# can read tracebacks (per the README) and rerun launch-ibl-gui without
+# restarting the session.
 set -euxo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
@@ -51,15 +51,26 @@ exec launch "$@"
 SH
 chmod +x /usr/local/bin/launch-ibl-gui
 
-# --- Autostart: open the GUI on session login ---
-# xfce4-terminal --hold keeps the terminal open after the GUI exits or
-# crashes, so console output (per the README) stays visible and the user
-# can rerun launch-ibl-gui without restarting the session.
-mkdir -p /root/.config/autostart
-cat > /root/.config/autostart/launch-ibl-gui.desktop <<'AUTOSTART'
+# --- Desktop entry: autostart, app menu, and double-clickable icon ---
+# `bash -c "...; exec bash"` runs the wrapper, then replaces the shell with
+# an interactive bash so the terminal stays open after the GUI exits or
+# crashes (gnome-terminal has no portable --hold). The user can read output
+# and rerun launch-ibl-gui from that shell.
+DESKTOP_ENTRY=$(cat <<'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=Launch IBL GUI
-Exec=xfce4-terminal --hold --command=/usr/local/bin/launch-ibl-gui
+Comment=IBL Ephys Alignment GUI
+Exec=gnome-terminal -- bash -c "/usr/local/bin/launch-ibl-gui; exec bash"
+Icon=utilities-terminal
+Terminal=false
+Categories=Science;
 X-GNOME-Autostart-enabled=true
-AUTOSTART
+DESKTOP
+)
+
+mkdir -p /root/.config/autostart /usr/share/applications /root/Desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /root/.config/autostart/launch-ibl-gui.desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
+chmod +x /root/Desktop/launch-ibl-gui.desktop
