@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# QoL setup for the IBL Ephys Alignment GUI capsule:
+#   - launch-ibl-gui wrapper that persists the docdb `username` across runs
+#   - XDG autostart that opens the GUI in a terminal at session login
+#   - desktop icon + app menu entry so the user can re-launch after closing
+# If the GUI exits, the terminal drops into an interactive bash so the user
+# can read tracebacks (per the README) and rerun launch-ibl-gui without
+# restarting the session.
+set -euxo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+cat > /tmp/requirements.txt <<'REQ'
+git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@88cd490b66de76b91e877550614b1304ef9a8da3
+REQ
+
+uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
+
+# `uv pip install --system` puts entry-point scripts in the conda env's bin
+# (e.g. /opt/conda/bin/launch). The autostart-spawned gnome-terminal runs
+# `bash -c`, which is non-interactive and skips conda's profile.d scripts,
+# so /opt/conda/bin isn't on PATH there. Symlink into /usr/local/bin so the
+# wrapper finds `launch` regardless of how the shell was invoked.
+ln -sf "$(command -v launch)" /usr/local/bin/launch
+
+# --- Wrapper that persists the docdb `username` across capsule runs ---
+# The IBL GUI uses the `username` env var when saving alignments to docdb.
+# /scratch persists across capsule runs in Code Ocean, so we cache it there
+# and only prompt once per capsule.
+cat > /usr/local/bin/launch-ibl-gui <<'SH'
+#!/usr/bin/env bash
+set -e
+
+USERNAME_FILE=/scratch/.ibl-gui-username
+
+if [ -z "${username:-}" ] && [ -f "$USERNAME_FILE" ]; then
+    username=$(cat "$USERNAME_FILE")
+    export username
+fi
+
+if [ -z "${username:-}" ] && command -v zenity >/dev/null 2>&1; then
+    if entered=$(zenity --entry \
+            --title="IBL Ephys Alignment GUI" \
+            --text="Enter your username (used when saving alignments to docdb).\nLeave blank to skip." \
+            2>/dev/null); then
+        if [ -n "$entered" ]; then
+            mkdir -p "$(dirname "$USERNAME_FILE")"
+            printf '%s' "$entered" > "$USERNAME_FILE"
+            export username="$entered"
+        fi
+    fi
+fi
+
+exec launch "$@"
+SH
+chmod +x /usr/local/bin/launch-ibl-gui
+
+# --- Desktop entry: autostart, app menu, and double-clickable icon ---
+# `bash -c "...; exec bash"` runs the wrapper, then replaces the shell with
+# an interactive bash so the terminal stays open after the GUI exits or
+# crashes (gnome-terminal has no portable --hold). The user can read output
+# and rerun launch-ibl-gui from that shell.
+DESKTOP_ENTRY=$(cat <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Launch IBL GUI
+Comment=IBL Ephys Alignment GUI
+Exec=gnome-terminal -- bash -c "/usr/local/bin/launch-ibl-gui; exec bash"
+Icon=utilities-terminal
+Terminal=false
+Categories=Science;
+X-GNOME-Autostart-enabled=true
+DESKTOP
+)
+
+mkdir -p /root/.config/autostart /usr/share/applications /root/Desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /root/.config/autostart/launch-ibl-gui.desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
+printf '%s\n' "$DESKTOP_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
+chmod +x /root/Desktop/launch-ibl-gui.desktop

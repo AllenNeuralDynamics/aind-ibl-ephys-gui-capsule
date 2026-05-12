@@ -1,6 +1,7 @@
 {
 	"version": 1,
 	"base_image": "codeocean/ubuntu-desktop-igv-fiji-mambaforge:23.1.0-4-python3.10.12-fiji20231107-1617-firefox120.0-igv2.16.1-guacamole1.5.2-ubuntu22.04",
+	"post_install": true,
 	"options": {
 		"registry_host_arg": true,
 		"git_ask_pass": true,
@@ -12,21 +13,12 @@
 				{
 					"name": "libxcb-xinerama0",
 					"version": "1.14-3ubuntu3"
-				}
-			]
-		},
-		"pip": {
-			"packages": [
-				{
-					"name": "git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git#egg=ibl-ephys-alignment-gui"
 				},
 				{
-					"name": "simpleitk",
-					"version": "2.5.2"
+					"name": "zenity",
+					"version": "3.42.1-0ubuntu1"
 				}
-			],
-			"options": {},
-			"pre_install_options": {}
+			]
 		}
 	}
 }
