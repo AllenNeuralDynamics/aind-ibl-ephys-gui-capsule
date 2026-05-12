@@ -14,7 +14,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
 cat > /tmp/requirements.txt <<'REQ'
-git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git
+git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@88cd490b66de76b91e877550614b1304ef9a8da3
 REQ
 
 uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
