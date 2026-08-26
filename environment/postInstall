@@ -1,35 +1,32 @@
 #!/usr/bin/env bash
-# QoL setup for the IBL Ephys Alignment GUI capsule:
-#   - launch-ibl-gui wrapper that persists the docdb `username` across runs
-#   - XDG autostart that opens the GUI in a terminal at session login
-#   - desktop icon + app menu entry so the user can re-launch after closing
-# If the GUI exits, the terminal drops into an interactive bash so the user
-# can read tracebacks (per the README) and rerun launch-ibl-gui without
-# restarting the session.
 set -euxo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
+# The lightdm/guacamole session is built by PAM, which does not inherit the
+# Dockerfile's ENV; /etc/environment is what reaches it. Bare KEY=VALUE only.
+cat >> /etc/environment <<'ENV'
+EPHYS_ALIGNMENT_INPUT_ROOT=/data
+EPHYS_ALIGNMENT_OUTPUT_ROOT=/results
+IBL_ASSET_ROOTS=/data
+ENV
+
+# Unmanaged: installs to a PATH dir and leaves shell profiles alone.
+curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
+uv --version  # sanity check
 
 cat > /tmp/requirements.txt <<'REQ'
-git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@88cd490b66de76b91e877550614b1304ef9a8da3
+git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@e022e4adad30f3aaaef7ee509d3ee394da5b56aa
 REQ
 
 uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
 
-# `uv pip install --system` puts entry-point scripts in the conda env's bin
-# (e.g. /opt/conda/bin/launch). The autostart-spawned gnome-terminal runs
-# `bash -c`, which is non-interactive and skips conda's profile.d scripts,
-# so /opt/conda/bin isn't on PATH there. Symlink into /usr/local/bin so the
-# wrapper finds `launch` regardless of how the shell was invoked.
+# Entry points land in /opt/conda/bin, which is off PATH in the non-interactive
+# `bash -c` the autostart uses (conda's profile.d never runs there).
 ln -sf "$(command -v launch)" /usr/local/bin/launch
 
-# --- Wrapper that persists the docdb `username` across capsule runs ---
-# The IBL GUI uses the `username` env var when saving alignments to docdb.
-# /scratch persists across capsule runs in Code Ocean, so we cache it there
-# and only prompt once per capsule.
+# The GUI reads `username` when saving to docdb. Cache it on /scratch, which
+# persists across runs, so the prompt appears only once.
 cat > /usr/local/bin/launch-ibl-gui <<'SH'
 #!/usr/bin/env bash
 set -e
@@ -58,11 +55,8 @@ exec launch "$@"
 SH
 chmod +x /usr/local/bin/launch-ibl-gui
 
-# --- Desktop entry: autostart, app menu, and double-clickable icon ---
-# `bash -c "...; exec bash"` runs the wrapper, then replaces the shell with
-# an interactive bash so the terminal stays open after the GUI exits or
-# crashes (gnome-terminal has no portable --hold). The user can read output
-# and rerun launch-ibl-gui from that shell.
+# The trailing `exec bash` keeps the terminal open after the GUI exits, so
+# tracebacks stay readable; gnome-terminal has no portable --hold.
 DESKTOP_ENTRY=$(cat <<'DESKTOP'
 [Desktop Entry]
 Type=Application
@@ -81,3 +75,29 @@ printf '%s\n' "$DESKTOP_ENTRY" > /root/.config/autostart/launch-ibl-gui.desktop
 printf '%s\n' "$DESKTOP_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
 printf '%s\n' "$DESKTOP_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
 chmod +x /root/Desktop/launch-ibl-gui.desktop
+
+# `gio set` needs a session-time gvfs/dbus daemon, absent during the build, so
+# trust the icons at session start instead. GNOME and XFCE use different keys.
+cat > /usr/local/bin/trust-desktop-launchers <<'SH'
+#!/usr/bin/env bash
+shopt -s nullglob
+for f in "$HOME"/Desktop/*.desktop; do
+    chmod +x "$f"
+    gio set "$f" metadata::trusted true 2>/dev/null || true
+    exec_line=$(sed -n 's/^Exec=//p' "$f" | head -n1)
+    if [ -n "$exec_line" ]; then
+        checksum=$(printf %s "$exec_line" | sha256sum | awk '{print $1}')
+        gio set "$f" metadata::xfce-exe-checksum "$checksum" 2>/dev/null || true
+    fi
+done
+SH
+chmod +x /usr/local/bin/trust-desktop-launchers
+
+cat > /root/.config/autostart/trust-desktop-launchers.desktop <<'AUTOSTART'
+[Desktop Entry]
+Type=Application
+Name=Trust Desktop Launchers
+Exec=/usr/local/bin/trust-desktop-launchers
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+AUTOSTART
