@@ -15,15 +15,83 @@ ENV
 curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
 uv --version  # sanity check
 
-cat > /tmp/requirements.txt <<'REQ'
-git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@e022e4adad30f3aaaef7ee509d3ee394da5b56aa
-REQ
+REPO_URL=https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui
+REPO_BRANCH=main
+SEED_DIR=/opt/ibl-ephys-alignment-gui        # image-baked clone (fallback + dep bake)
+LIVE_DIR=/scratch/ibl-ephys-alignment-gui    # persistent live checkout (runtime)
 
-uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
+# Editable from a checkout so sync-ibl-gui can re-point it at new upstream code
+# without a capsule rebuild. The build-time install bakes the heavy dependency
+# tree into the image, so the runtime reinstall is fast; /opt is the seed.
+git clone --filter=blob:none --branch "${REPO_BRANCH}" "${REPO_URL}" "${SEED_DIR}"
+uv pip install --system -e "${SEED_DIR}"
 
 # Entry points land in /opt/conda/bin, which is off PATH in the non-interactive
 # `bash -c` the autostart uses (conda's profile.d never runs there).
 ln -sf "$(command -v launch)" /usr/local/bin/launch
+
+# sync-ibl-gui: pull or switch branch and reinstall WITHOUT a capsule rebuild.
+# The live checkout is on /scratch (persists across runs) and installed
+# editable, so pulled changes take effect on the next run. --no-pull only
+# re-creates the editable link, which each session needs because /opt/conda
+# resets on stop/resume. The checked-out branch persists, so both launchers
+# follow whatever branch was last selected.
+cat > /usr/local/bin/sync-ibl-gui <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+SEED_DIR=/opt/ibl-ephys-alignment-gui
+LIVE_DIR=/scratch/ibl-ephys-alignment-gui
+
+PULL=1
+BRANCH=""
+case "${1:-}" in
+    --no-pull) PULL=0 ;;
+    "")        : ;;
+    -*)        echo "sync-ibl-gui: unknown option '$1'" >&2; exit 2 ;;
+    *)         BRANCH="$1" ;;
+esac
+
+mkdir -p /scratch
+
+# Seed the persistent checkout from the image-baked clone (offline; keeps .git
+# and any pre-baked .vscode config).
+if [ ! -d "$LIVE_DIR/.git" ]; then
+    rm -rf "$LIVE_DIR"
+    cp -a "$SEED_DIR" "$LIVE_DIR"
+fi
+
+# Switch branch on request (git auto-creates a tracking branch from
+# origin/<branch> the first time). Refuses if you have uncommitted edits.
+if [ -n "$BRANCH" ]; then
+    git -C "$LIVE_DIR" fetch origin
+    if ! git -C "$LIVE_DIR" checkout "$BRANCH"; then
+        echo "sync-ibl-gui: couldn't switch to '$BRANCH' -- uncommitted changes, or no such branch on origin." >&2
+        echo "  Commit/stash edits in $LIVE_DIR, or check the branch name, then retry." >&2
+        exit 1
+    fi
+fi
+
+if [ "$PULL" = 1 ]; then
+    if ! git -C "$LIVE_DIR" pull --ff-only; then
+        echo "sync-ibl-gui: 'git pull --ff-only' failed -- local changes or diverged history." >&2
+        echo "  Resolve in $LIVE_DIR (commit/stash/reset), then rerun sync-ibl-gui." >&2
+        exit 1
+    fi
+fi
+
+# Restore the workspace config if a branch seeded one and it was deleted.
+if [ -d "$SEED_DIR/.vscode" ] && [ ! -f "$LIVE_DIR/.vscode/launch.json" ]; then
+    mkdir -p "$LIVE_DIR/.vscode"
+    cp -a "$SEED_DIR/.vscode/." "$LIVE_DIR/.vscode/" 2>/dev/null || true
+fi
+
+# (Re)create the editable install into the system Python. Deps are baked at
+# build time, so this is fast unless pyproject changed.
+uv pip install --system -e "$LIVE_DIR"
+echo "sync-ibl-gui: $LIVE_DIR on '$(git -C "$LIVE_DIR" rev-parse --abbrev-ref HEAD)' at $(git -C "$LIVE_DIR" rev-parse --short HEAD), installed editable."
+SH
+chmod +x /usr/local/bin/sync-ibl-gui
 
 # The GUI reads `username` when saving to docdb. Cache it on /scratch, which
 # persists across runs, so the prompt appears only once.
@@ -57,7 +125,7 @@ chmod +x /usr/local/bin/launch-ibl-gui
 
 # The trailing `exec bash` keeps the terminal open after the GUI exits, so
 # tracebacks stay readable; gnome-terminal has no portable --hold.
-DESKTOP_ENTRY=$(cat <<'DESKTOP'
+LAUNCH_ENTRY=$(cat <<'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=Launch IBL GUI
@@ -66,15 +134,31 @@ Exec=gnome-terminal -- bash -c "/usr/local/bin/launch-ibl-gui; exec bash"
 Icon=utilities-terminal
 Terminal=false
 Categories=Science;
-X-GNOME-Autostart-enabled=true
 DESKTOP
 )
 
+
+SYNC_ENTRY=$(cat <<'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Sync IBL GUI
+Comment=Pull upstream ibl-ephys-alignment-gui changes and reinstall (no rebuild)
+Exec=gnome-terminal -- bash -c "/usr/local/bin/sync-ibl-gui; echo; echo 'Done. Relaunch the GUI to pick up changes.'; exec bash"
+Icon=view-refresh
+Terminal=false
+Categories=Development;
+DESKTOP
+)
+
+# No session autostart here: each branch built on this one declares its own.
 mkdir -p /root/.config/autostart /usr/share/applications /root/Desktop
-printf '%s\n' "$DESKTOP_ENTRY" > /root/.config/autostart/launch-ibl-gui.desktop
-printf '%s\n' "$DESKTOP_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
-printf '%s\n' "$DESKTOP_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
+printf '%s\n' "$LAUNCH_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
+printf '%s\n' "$LAUNCH_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
 chmod +x /root/Desktop/launch-ibl-gui.desktop
+printf '%s\n' "$SYNC_ENTRY" > /usr/share/applications/sync-ibl-gui.desktop
+printf '%s\n' "$SYNC_ENTRY" > /root/Desktop/sync-ibl-gui.desktop
+chmod +x /root/Desktop/sync-ibl-gui.desktop
 
 # `gio set` needs a session-time gvfs/dbus daemon, absent during the build, so
 # trust the icons at session start instead. GNOME and XFCE use different keys.
