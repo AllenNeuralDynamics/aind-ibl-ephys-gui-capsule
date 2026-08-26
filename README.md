@@ -1,5 +1,9 @@
 This is the [capsule](https://codeocean.allenneuraldynamics.org/capsule/6044160/tree) that launches the IBL Gui in the image space. The repo that this capsule uses is found here: [aind-ibl-gui](https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui). Duplicate this capsule to start.
 
+> **Autolaunch branch.** The GUI is installed **editable** from a checkout at `/scratch/ibl-ephys-alignment-gui` that tracks the GUI repo's `main`. At every session start the workstation pulls upstream and launches the GUI in a terminal that stays open, so you see which commit you got and any traceback. No capsule rebuild is needed to pick up upstream changes, and no VS Code is installed — use the debugger branch for that.
+>
+> `sync-ibl-gui` pulls and reinstalls on demand; `sync-ibl-gui <branch>` switches the checkout to another branch, and that choice persists across runs. Local edits in the checkout survive stop/resume and block the auto-pull rather than being clobbered.
+
 ### Attaching Data
 Before launching the gui, make sure these 2 assets are attached. The output from this capsule: https://codeocean.allenneuraldynamics.org/capsule/0325751/tree, and the stitched SmartSPIM asset for the subject.
 
@@ -19,7 +23,7 @@ The first time you launch the workstation, a dialog will prompt for a username. 
 To change it later, delete `/scratch/.ibl-gui-username` and relaunch, or `export username="..."` in a terminal before invoking `launch-ibl-gui`.
 
 ### Using the gui
-The GUI starts automatically when the Ubuntu workstation finishes booting — a terminal window opens and runs `launch-ibl-gui`. If the GUI exits or crashes, the terminal stays open so you can read the traceback; rerun `launch-ibl-gui` in that same terminal to relaunch without restarting the session.
+The GUI starts automatically when the Ubuntu workstation finishes booting — a terminal window opens, pulls the latest GUI, and runs `launch-ibl-gui`. If the GUI exits or crashes, the terminal stays open so you can read the traceback; rerun `launch-ibl-gui` in that same terminal to relaunch without restarting the session.
 
 Navigate to the probe you want to load and click on that folder. Once loaded, something like below should show:
 
