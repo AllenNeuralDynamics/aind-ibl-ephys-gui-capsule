@@ -20,5 +20,19 @@
 				}
 			]
 		}
-	}
+	},
+	"env_variables": [
+		{
+			"name": "EPHYS_ALIGNMENT_INPUT_ROOT",
+			"value": "'/data'"
+		},
+		{
+			"name": "EPHYS_ALIGNMENT_OUTPUT_ROOT",
+			"value": "'/results'"
+		},
+		{
+			"name": "IBL_ASSET_ROOTS",
+			"value": "'/data'"
+		}
+	]
 }

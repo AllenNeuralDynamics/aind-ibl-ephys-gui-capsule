@@ -7,7 +7,7 @@ export DEBIAN_FRONTEND=noninteractive
 # Dockerfile's ENV; /etc/environment is what reaches it. Bare KEY=VALUE only.
 cat >> /etc/environment <<'ENV'
 EPHYS_ALIGNMENT_INPUT_ROOT=/data
-EPHYS_ALIGNMENT_OUTPUT_ROOT=/results
+EPHYS_ALIGNMENT_OUTPUT_ROOT=/scratch
 IBL_ASSET_ROOTS=/data
 EPHYS_ALIGNMENT_GUI_TIMING=1
 ENV
