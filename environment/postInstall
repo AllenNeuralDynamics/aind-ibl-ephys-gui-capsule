@@ -9,7 +9,25 @@ cat >> /etc/environment <<'ENV'
 EPHYS_ALIGNMENT_INPUT_ROOT=/data
 EPHYS_ALIGNMENT_OUTPUT_ROOT=/results
 IBL_ASSET_ROOTS=/data
+EPHYS_ALIGNMENT_GUI_TIMING=1
 ENV
+
+# VS Code from the official x64 .deb; apt resolves its dependencies.
+TMP_DEB=/tmp/vscode.deb
+curl -fL -o "${TMP_DEB}" https://go.microsoft.com/fwlink/?LinkID=760868
+apt-get update
+apt-get install -y --no-install-recommends "${TMP_DEB}"
+rm -f "${TMP_DEB}"
+rm -rf /var/lib/apt/lists/*
+
+# Extensions live under /opt so they ride with the image; the runtime
+# launcher points at this dir, keeping them off /root and /scratch.
+VSCODE_EXTDIR=/opt/vscode-extensions
+mkdir -p "${VSCODE_EXTDIR}"
+VSCODE_BUILD_FLAGS=(--no-sandbox --user-data-dir=/tmp/vscode-build --extensions-dir="${VSCODE_EXTDIR}")
+code "${VSCODE_BUILD_FLAGS[@]}" --install-extension ms-python.python
+code "${VSCODE_BUILD_FLAGS[@]}" --install-extension ms-python.debugpy
+rm -rf /tmp/vscode-build
 
 # Unmanaged: installs to a PATH dir and leaves shell profiles alone.
 curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
@@ -32,6 +50,39 @@ LIVE_DIR=/scratch/ibl-ephys-alignment-gui    # persistent live checkout (runtime
 # without a capsule rebuild. The build-time install bakes the heavy dependency
 # tree into the image, so the runtime reinstall is fast; /opt is the seed.
 git clone --filter=blob:none --branch "${REPO_BRANCH}" "${REPO_URL}" "${SEED_DIR}"
+# PYDEVD_USE_FRAME_EVAL=NO: pydevd's frame-eval optimization silently misses
+# breakpoints in Qt slots and QThreads on CPython 3.10. The CO mount vars are
+# deliberately absent -- /etc/environment is their single source.
+mkdir -p "${SEED_DIR}/.vscode"
+cat > "${SEED_DIR}/.vscode/launch.json" <<'JSON'
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug: IBL Ephys Alignment GUI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/launch.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "redirectOutput": true,
+            "justMyCode": false,
+            "python": "/opt/conda/bin/python",
+            "env": {
+                "PYDEVD_USE_FRAME_EVAL": "NO",
+                "PYDEVD_DISABLE_FILE_VALIDATION": "1"
+            }
+        }
+    ]
+}
+JSON
+cat > "${SEED_DIR}/.vscode/settings.json" <<'JSON'
+{
+    "python.defaultInterpreterPath": "/opt/conda/bin/python",
+    "python.terminal.activateEnvironment": false
+}
+JSON
+
 uv pip install --python "$(cat "${GUI_PYTHON_FILE}")" --system -e "${SEED_DIR}"
 
 # Entry points land in /opt/conda/bin, which is off PATH in the non-interactive
@@ -133,8 +184,71 @@ exec launch "$@"
 SH
 chmod +x /usr/local/bin/launch-ibl-gui
 
+
+# debug-ibl-gui: ensure the editable install, resolve the docdb username, then
+# open VS Code. --no-sandbox is required as root; --password-store=basic keeps
+# VS Code off the gnome-keyring Secret Service, which has no PAM login to
+# unlock it here; --user-data-dir puts VS Code state on the persistent mount.
+cat > /usr/local/bin/debug-ibl-gui <<'SH'
+#!/usr/bin/env bash
+set -e
+
+SEED_DIR=/opt/ibl-ephys-alignment-gui
+LIVE_DIR=/scratch/ibl-ephys-alignment-gui
+
+# Ensure the persistent checkout exists and the editable install is present in
+# this (possibly fresh) container. Fall back to the baked clone if it fails.
+sync-ibl-gui --no-pull || echo "debug-ibl-gui: sync failed; using the image-baked GUI." >&2
+REPO="$LIVE_DIR"
+[ -d "$REPO" ] || REPO="$SEED_DIR"
+
+USERNAME_FILE=/scratch/.ibl-gui-username
+
+if [ -z "${username:-}" ] && [ -f "$USERNAME_FILE" ]; then
+    username=$(cat "$USERNAME_FILE")
+    export username
+fi
+
+if [ -z "${username:-}" ] && command -v zenity >/dev/null 2>&1; then
+    if entered=$(zenity --entry \
+            --title="IBL Ephys Alignment GUI" \
+            --text="Enter your username (used when saving alignments to docdb).\nLeave blank to skip." \
+            2>/dev/null); then
+        if [ -n "$entered" ]; then
+            mkdir -p "$(dirname "$USERNAME_FILE")"
+            printf '%s' "$entered" > "$USERNAME_FILE"
+            export username="$entered"
+        fi
+    fi
+fi
+
+ulimit -c 0
+mkdir -p /scratch/vscode
+
+exec code \
+    --no-sandbox \
+    --password-store=basic \
+    --user-data-dir=/scratch/vscode \
+    --extensions-dir=/opt/vscode-extensions \
+    "${@:-$REPO}"
+SH
+chmod +x /usr/local/bin/debug-ibl-gui
+
 # The trailing `exec bash` keeps the terminal open after the GUI exits, so
 # tracebacks stay readable; gnome-terminal has no portable --hold.
+DEBUG_ENTRY=$(cat <<'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Debug IBL GUI
+Comment=Open ibl-ephys-alignment-gui in VS Code with the debugger pre-configured
+Exec=gnome-terminal -- bash -c "/usr/local/bin/debug-ibl-gui; exec bash"
+Icon=code
+Terminal=false
+Categories=Development;
+DESKTOP
+)
+
 LAUNCH_ENTRY=$(cat <<'DESKTOP'
 [Desktop Entry]
 Type=Application
@@ -163,12 +277,28 @@ DESKTOP
 
 # No session autostart here: each branch built on this one declares its own.
 mkdir -p /root/.config/autostart /usr/share/applications /root/Desktop
+printf '%s\n' "$DEBUG_ENTRY" > /usr/share/applications/debug-ibl-gui.desktop
+printf '%s\n' "$DEBUG_ENTRY" > /root/Desktop/debug-ibl-gui.desktop
+chmod +x /root/Desktop/debug-ibl-gui.desktop
 printf '%s\n' "$LAUNCH_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
 printf '%s\n' "$LAUNCH_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
 chmod +x /root/Desktop/launch-ibl-gui.desktop
 printf '%s\n' "$SYNC_ENTRY" > /usr/share/applications/sync-ibl-gui.desktop
 printf '%s\n' "$SYNC_ENTRY" > /root/Desktop/sync-ibl-gui.desktop
 chmod +x /root/Desktop/sync-ibl-gui.desktop
+
+# /opt/conda resets on stop/resume, so the editable link into the /scratch
+# checkout has to be re-created each session or `launch` silently runs the
+# image-baked seed instead. --no-pull repairs the link without a surprise pull.
+cat > /root/.config/autostart/relink-ibl-gui.desktop <<'AUTOSTART'
+[Desktop Entry]
+Type=Application
+Name=Relink IBL GUI
+Exec=bash -c "/usr/local/bin/sync-ibl-gui --no-pull >/scratch/.ibl-gui-relink.log 2>&1 || zenity --error --title='IBL GUI' --text='Could not re-link the /scratch checkout; the GUI will run the image-baked version. See /scratch/.ibl-gui-relink.log'"
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+AUTOSTART
+
 
 # `gio set` needs a session-time gvfs/dbus daemon, absent during the build, so
 # trust the icons at session start instead. GNOME and XFCE use different keys.
