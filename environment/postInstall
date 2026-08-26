@@ -161,7 +161,6 @@ Categories=Development;
 DESKTOP
 )
 
-# No session autostart here: each branch built on this one declares its own.
 mkdir -p /root/.config/autostart /usr/share/applications /root/Desktop
 printf '%s\n' "$LAUNCH_ENTRY" > /usr/share/applications/launch-ibl-gui.desktop
 printf '%s\n' "$LAUNCH_ENTRY" > /root/Desktop/launch-ibl-gui.desktop
@@ -169,6 +168,20 @@ chmod +x /root/Desktop/launch-ibl-gui.desktop
 printf '%s\n' "$SYNC_ENTRY" > /usr/share/applications/sync-ibl-gui.desktop
 printf '%s\n' "$SYNC_ENTRY" > /root/Desktop/sync-ibl-gui.desktop
 chmod +x /root/Desktop/sync-ibl-gui.desktop
+
+# Pull upstream, then launch, at every session start. sync-ibl-gui exits before
+# the editable reinstall when a pull fails, so fall back to --no-pull: otherwise
+# /opt/conda's reset would leave `launch` on the image-baked seed silently. The
+# terminal stays open so the synced commit and any traceback stay readable.
+cat > /root/.config/autostart/sync-and-launch-ibl-gui.desktop <<'AUTOSTART'
+[Desktop Entry]
+Type=Application
+Name=Sync and Launch IBL GUI
+Exec=gnome-terminal -- bash -c "sync-ibl-gui || sync-ibl-gui --no-pull; launch-ibl-gui; exec bash"
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+AUTOSTART
 
 # `gio set` needs a session-time gvfs/dbus daemon, absent during the build, so
 # trust the icons at session start instead. GNOME and XFCE use different keys.
