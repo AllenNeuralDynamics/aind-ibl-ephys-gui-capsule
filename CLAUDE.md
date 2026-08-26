@@ -70,15 +70,17 @@ Read by the GUI (GUI repo, under `src/ephys_alignment_gui/`: `core/settings.py`,
 | `EPHYS_ALIGNMENT_GUI_TIMING` | Enables timing instrumentation |
 | `username` | Curator recorded on docdb-saved alignments; blank skips docdb writes |
 
-Set in two tiers:
+They can be set in two places, but only one of them reaches the GUI:
 
-1. Dockerfile `ENV` / `environment.json` `env_variables` — container defaults, reaching headless
-   contexts. Only changeable through the Code Ocean UI.
-2. `/etc/environment`, appended by `postInstall` — what the GUI actually sees.
+1. Dockerfile `ENV` / `environment.json` `env_variables` — clobbered by the lightdm/guacamole
+   session, which PAM builds without inheriting the container's `ENV`. Since `code/run` is a no-op,
+   nothing else in this capsule reads them either, so they have no effect at all. Changeable only
+   through the Code Ocean UI.
+2. `/etc/environment`, appended by `postInstall` — the single source for these defaults, and what
+   the GUI actually reads.
 
-The desktop session is started by lightdm/guacamole through PAM, which does not inherit Dockerfile
-`ENV`, so a default set only in tier 1 has no effect on the GUI. `launch-ibl-gui` re-exports each
-as `${VAR:-default}`, so tier 2 wins over those fallbacks.
+Keep it that way: do not add a fallback copy of a default in a wrapper script or a debug config.
+The copies drift, and the one that loses is silent about it.
 
 `username` is prompted once via zenity and cached in `/scratch/.ibl-gui-username`.
 
