@@ -15,6 +15,14 @@ ENV
 curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
 uv --version  # sanity check
 
+# `uv pip install --system` re-derives its target from PATH, and the desktop
+# session's PATH is not the build's (no /opt/conda), so the same command lands
+# in a different interpreter at runtime than it does here. Record the build's
+# choice and pin both installs to it, so the sync updates the environment the
+# dependency tree is baked into instead of building a second one under /usr.
+GUI_PYTHON_FILE=/usr/local/share/ibl-gui-python
+uv python find --system > "${GUI_PYTHON_FILE}"
+
 REPO_URL=https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui
 REPO_BRANCH=main
 SEED_DIR=/opt/ibl-ephys-alignment-gui        # image-baked clone (fallback + dep bake)
@@ -24,7 +32,7 @@ LIVE_DIR=/scratch/ibl-ephys-alignment-gui    # persistent live checkout (runtime
 # without a capsule rebuild. The build-time install bakes the heavy dependency
 # tree into the image, so the runtime reinstall is fast; /opt is the seed.
 git clone --filter=blob:none --branch "${REPO_BRANCH}" "${REPO_URL}" "${SEED_DIR}"
-uv pip install --system -e "${SEED_DIR}"
+uv pip install --python "$(cat "${GUI_PYTHON_FILE}")" --system -e "${SEED_DIR}"
 
 # Entry points land in /opt/conda/bin, which is off PATH in the non-interactive
 # `bash -c` the autostart uses (conda's profile.d never runs there).
@@ -86,9 +94,11 @@ if [ -d "$SEED_DIR/.vscode" ] && [ ! -f "$LIVE_DIR/.vscode/launch.json" ]; then
     cp -a "$SEED_DIR/.vscode/." "$LIVE_DIR/.vscode/" 2>/dev/null || true
 fi
 
-# (Re)create the editable install into the system Python. Deps are baked at
-# build time, so this is fast unless pyproject changed.
-uv pip install --system -e "$LIVE_DIR"
+# (Re)create the editable install in the interpreter the build baked the deps
+# into -- not whatever `--system` alone would find on the session's PATH. Deps
+# are already there, so this is fast unless pyproject changed.
+uv pip install --python "$(cat /usr/local/share/ibl-gui-python)" --system \
+    -e "$LIVE_DIR"
 echo "sync-ibl-gui: $LIVE_DIR on '$(git -C "$LIVE_DIR" rev-parse --abbrev-ref HEAD)' at $(git -C "$LIVE_DIR" rev-parse --short HEAD), installed editable."
 SH
 chmod +x /usr/local/bin/sync-ibl-gui
