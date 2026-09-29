@@ -18,6 +18,9 @@ The first time you launch the workstation, a dialog will prompt for a username. 
 
 To change it later, delete `/scratch/.ibl-gui-username` and relaunch, or `export username="..."` in a terminal before invoking `launch-ibl-gui`.
 
+### Choosing the GUI version
+Each time the GUI launches, it installs the version named in `code/gui_version` (`/code/gui_version` in the workstation). The default, `latest`, follows the newest [release](https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui/releases), so a duplicated capsule picks up new releases without a rebuild. To stay on one version, replace it with a release tag such as `v0.4.0`; a branch name or commit of the GUI repo also works. The terminal prints the version it is running, and saved alignments record it. If the install fails, for example without network access, the GUI starts with the version built into the capsule.
+
 ### Using the gui
 The GUI starts automatically when the Ubuntu workstation finishes booting — a terminal window opens and runs `launch-ibl-gui`. If the GUI exits or crashes, the terminal stays open so you can read the traceback; rerun `launch-ibl-gui` in that same terminal to relaunch without restarting the session.
 

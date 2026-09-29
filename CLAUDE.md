@@ -9,8 +9,14 @@ Alignment GUI. No application code here.
 
 - `code/run` is a no-op (`exit 0`). There is no Reproducible-Run path; all behavior is in
   `environment/postInstall`, which runs at image build time.
-- The GUI is a separate repo, installed by `postInstall` at a pinned commit:
-  <https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui>
+- The GUI is a separate repo:
+  <https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui>. `postInstall` bakes its latest
+  GitHub release; `launch-ibl-gui` then installs whatever `code/gui_version` (`/code/gui_version`
+  at runtime) names — `latest`, a release tag, or a branch or commit — before starting it, falling
+  back to the installed version when that fails.
+- Duplicating the capsule freezes its image, so the launcher is baked and stays frozen in every
+  duplicate. Keep it to resolve-install-launch; GUI behaviour belongs in the GUI's releases and the
+  version choice in the user's `/code`.
 - Capsule 6044160. Inputs: output of capsule 0325751 plus the subject's stitched SmartSPIM asset,
   attached as data assets.
 

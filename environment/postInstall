@@ -15,23 +15,85 @@ ENV
 curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
 uv --version  # sanity check
 
-cat > /tmp/requirements.txt <<'REQ'
-git+https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui.git@e022e4adad30f3aaaef7ee509d3ee394da5b56aa
-REQ
+REPO=AllenNeuralDynamics/ibl-ephys-alignment-gui
 
-uv pip install --no-cache --system -r /tmp/requirements.txt && rm /tmp/requirements.txt
+# `uv pip install --system` picks its interpreter from PATH, and the desktop
+# session's PATH lacks /opt/conda, so the launcher would install into a
+# different Python than the one the dependency tree is baked into.
+GUI_PYTHON_FILE=/usr/local/share/ibl-gui-python
+uv python find --system > "${GUI_PYTHON_FILE}"
+
+# Bake the latest release so a session running it installs nothing. The
+# launcher resolves /code/gui_version against this at each start.
+latest_url=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+    "https://github.com/${REPO}/releases/latest")
+tag=${latest_url##*/}
+uv pip install --no-cache --python "$(cat "${GUI_PYTHON_FILE}")" --system \
+    "ibl-ephys-alignment-gui @ https://github.com/${REPO}/releases/download/${tag}/ibl_ephys_alignment_gui-${tag#v}-py3-none-any.whl"
 
 # Entry points land in /opt/conda/bin, which is off PATH in the non-interactive
 # `bash -c` the autostart uses (conda's profile.d never runs there).
 ln -sf "$(command -v launch)" /usr/local/bin/launch
 
-# The GUI reads `username` when saving to docdb. Cache it on /scratch, which
-# persists across runs, so the prompt appears only once.
+# The image is frozen when a capsule is duplicated, so the GUI version is read
+# from /code, which each duplicate owns and can edit, and installed at launch.
+# Anything that fails leaves the baked release in place. The username that the
+# GUI records on docdb saves is cached on /scratch so the prompt appears once.
 cat > /usr/local/bin/launch-ibl-gui <<'SH'
 #!/usr/bin/env bash
-set -e
+set -uo pipefail
 
+REPO=AllenNeuralDynamics/ibl-ephys-alignment-gui
+DIST=ibl-ephys-alignment-gui
+PIN_FILE=/code/gui_version
 USERNAME_FILE=/scratch/.ibl-gui-username
+PYTHON=$(cat /usr/local/share/ibl-gui-python)
+
+# /opt/conda resets every session; a cache on /scratch keeps reinstalls fast.
+# It is a different filesystem, so uv cannot hardlink from it.
+export UV_CACHE_DIR=/scratch/.cache/uv UV_LINK_MODE=copy
+
+# First word of the first non-comment line; `latest` when absent or blank.
+pin=$(sed 's/#.*//' "$PIN_FILE" 2>/dev/null | awk 'NF {print $1; exit}')
+pin=${pin:-latest}
+
+install_pin() {
+    local ref=$1
+    if [ "$ref" = latest ]; then
+        # The redirect, not the API: the API's unauthenticated rate limit is
+        # per IP, and workstations share egress.
+        ref=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+            "https://github.com/$REPO/releases/latest") || return 1
+        ref=${ref##*/}
+        [[ $ref == v[0-9]* ]] || return 1
+    fi
+    local req
+    if [[ $ref == v[0-9]* ]]; then
+        req="$DIST @ https://github.com/$REPO/releases/download/$ref/${DIST//-/_}-${ref#v}-py3-none-any.whl"
+    else
+        req="$DIST @ git+https://github.com/$REPO.git@$ref"
+    fi
+    # A no-op when the same URL is already installed.
+    uv pip install --python "$PYTHON" --system "$req"
+}
+
+echo "launch-ibl-gui: GUI version '$pin' (from $PIN_FILE)"
+if ! install_pin "$pin"; then
+    echo "launch-ibl-gui: could not install '$pin'; running the installed version." >&2
+fi
+# A branch or commit keeps the last release's version number, so name the
+# commit too.
+"$PYTHON" - "$DIST" <<'PY'
+import json
+import sys
+from importlib.metadata import distribution
+
+dist = distribution(sys.argv[1])
+commit = json.loads(dist.read_text("direct_url.json") or "{}").get(
+    "vcs_info", {}).get("commit_id")
+suffix = f" at commit {commit[:7]}" if commit else ""
+print(f"launch-ibl-gui: running {dist.name} {dist.version}{suffix}")
+PY
 
 if [ -z "${username:-}" ] && [ -f "$USERNAME_FILE" ]; then
     username=$(cat "$USERNAME_FILE")
