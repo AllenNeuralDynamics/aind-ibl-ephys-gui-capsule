@@ -11,6 +11,10 @@
 		"apt": {
 			"packages": [
 				{
+					"name": "libxcb-cursor0",
+					"version": "0.1.1-4ubuntu1"
+				},
+				{
 					"name": "libxcb-xinerama0",
 					"version": "1.14-3ubuntu3"
 				},
