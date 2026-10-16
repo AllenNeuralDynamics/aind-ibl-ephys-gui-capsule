@@ -1,7 +1,20 @@
 This is the [capsule](https://codeocean.allenneuraldynamics.org/capsule/6044160/tree) that launches the IBL Gui in the image space. The repo that this capsule uses is found here: [aind-ibl-gui](https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui). Duplicate this capsule to start.
 
 ### Attaching Data
-Before launching the gui, make sure these 2 assets are attached. The output from this capsule: https://codeocean.allenneuraldynamics.org/capsule/0325751/tree, and the stitched SmartSPIM asset for the subject.
+Attach the preprocessed mouse output and the external assets named in its
+`datapackage.json` registry. These commonly include the subject's stitched
+SmartSPIM registration asset and `spim_template_to_ccf`; a separate
+registration asset may also be needed. Keep complete ephys collections,
+including QC files and `band_corr/`, rather than copying only JSON-listed files.
+
+The workstation sets `IBL_ASSET_ROOTS=/data` so external references resolve
+against attached assets by recorded name or ID. Renamed mounts need
+`IBL_ASSET_CONFIG` or `IBL_ASSET_OVERRIDES`; configure these in the terminal
+session before relaunching if needed. Choosing an input directory does not
+configure external asset roots. See the GUI's
+[portable input contract](https://github.com/AllenNeuralDynamics/ibl-ephys-alignment-gui/blob/main/docs/input_datapackage_contract.md)
+for resolution rules and desktop examples. The resolver locates existing
+files; it does not fetch external assets automatically.
 
 ### Setting docdb credentials
 If you want to save to the metadata database, before launching the workstation follow the steps below:
@@ -24,10 +37,17 @@ Each time the GUI launches, it installs the version named in `code/gui_version` 
 ### Using the gui
 The GUI starts automatically when the Ubuntu workstation finishes booting — a terminal window opens and runs `launch-ibl-gui`. If the GUI exits or crashes, the terminal stays open so you can read the traceback; rerun `launch-ibl-gui` in that same terminal to relaunch without restarting the session.
 
-Navigate to the probe you want to load and click on that folder. Once loaded, something like below should show:
+Open the mouse directory containing `datapackage.json`, then select a recording,
+ephys collection, and shank in the GUI. Once loaded, something like below
+should show:
 
 ![image](https://github.com/user-attachments/assets/fa014933-94fd-4bdf-874f-590a0db362ea)
 
 Usage instructions can be found on the [`iblapps` wiki](https://github.com/int-brain-lab/iblapps/wiki). For debugging, check the terminal for console outputs (where the gui was launched) and reach out to Josh or Arjun if needed. IMPORTANT: If you do not have docdb credentials, the output will still be saved to `/results`. **Make sure to click save before proceeding to next session/probe**.
 
   
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for developer setup, checks, and
+repository conventions. Coding agents should also read [AGENTS.md](AGENTS.md).
